@@ -316,23 +316,18 @@ function parseHora(v){
   if(typeof v==='string'&&v.trim()){
     const s=v.trim();
     if(!s)return null;
-    // Formato ISO de Google Sheets: "2026-07-02T16:22:00.000Z"
+    // Formato ISO de Google Sheets con fecha completa: "2026-07-02T16:22:00.000Z"
+    // Conservar fecha completa para cálculos correctos entre días
     if(s.includes('T')){
       const dt=new Date(s);
-      if(!isNaN(dt)){
-        const d=new Date();
-        d.setHours(dt.getHours(),dt.getMinutes(),0,0);
-        return d;
-      }
+      if(!isNaN(dt)) return dt; // Retornar fecha completa con zona horaria local
     }
-    // Formato "22:00:00" o "22:00"
+    // Formato "22:00:00" o "22:00" — solo hora, normalizar a hoy
     const hm=s.match(/^(\d{1,2}):(\d{2})/);
     if(hm){const d=new Date();d.setHours(+hm[1],+hm[2],0,0);return d;}
-    // Otros formatos de fecha
+    // Otros formatos de fecha completa
     const dt=new Date(s);
-    if(!isNaN(dt)&&dt.getFullYear()>1900){
-      const d=new Date();d.setHours(dt.getHours(),dt.getMinutes(),0,0);return d;
-    }
+    if(!isNaN(dt)&&dt.getFullYear()>1900) return dt;
   }
   return null;
 }
