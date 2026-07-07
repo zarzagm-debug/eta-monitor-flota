@@ -82,6 +82,7 @@
   .badge-gray{background:var(--gray-bg);color:var(--gray-text)}.badge-gray::before{background:var(--gray-text)}
   .badge-purple{background:var(--purple-bg);color:var(--purple)}.badge-purple::before{background:var(--purple)}
   .badge-dark{background:var(--surface2);color:var(--text-sec);border:1px solid var(--border)}.badge-dark::before{background:var(--green)}
+  .badge-cancel{background:#FEF3C7;color:#92400E;border:1px solid #FDE68A}.badge-cancel::before{background:#92400E}
   @keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
   /* SIN REPORTE */
   @keyframes rowPulse{0%,100%{background:rgba(220,38,38,.04)}50%{background:rgba(220,38,38,.09)}}
@@ -211,6 +212,7 @@
       <option value="ATRASADO">Atrasado</option>
       <option value="SIN INICIAR">Sin iniciar</option>
       <option value="COMPLETADO">Completado</option>
+      <option value="CANCELADO">Cancelado</option>
     </select>
     <select id="filtroDestino" onchange="renderTabla()">
       <option value="">Todos los destinos</option>
@@ -362,8 +364,12 @@ function parsearViajes(data){
       lat:r['Lat actual']?+r['Lat actual']:null,
       lon:r['Long actual']?+r['Long actual']:null,
       ult_rep:parseHora(r['Hora último reporte']),
+      lleg_real_raw:String(r['Llegada real']||'').trim(),
       lleg_real:parseHora(r['Llegada real']),
+      cancelado:String(r['Llegada real']||'').trim()==='CANCELADO',
       obs:String(r['Observaciones']||'').trim(),
+      responsable:String(r['Responsable']||'').trim(),
+      comentarios_cierre:String(r['Comentarios cierre']||'').trim(),
     };
   }).filter(Boolean);
 }
@@ -386,6 +392,8 @@ function parsearHistorico(data){
       dif_min:r['Diferencia (min)']!==''?+r['Diferencia (min)']:null,
       cumplimiento:String(r['Cumplimiento']||'').trim(),
       obs:String(r['Observaciones']||'').trim(),
+      responsable:String(r['Responsable']||'').trim(),
+      comentarios_cierre:String(r['Comentarios cierre']||'').trim(),
     };
   }).filter(Boolean);
 }
@@ -440,6 +448,7 @@ function calcPct(v){
   return Math.min(99,Math.max(0,Math.round(elap/tot*100)));
 }
 function getEstatus(v){
+  if(v.cancelado)return{label:'CANCELADO',cls:'badge-cancel'};
   if(v.lleg_real)return{label:'COMPLETADO',cls:'badge-dark'};
   if(!v.sal_real)return{label:'SIN INICIAR',cls:'badge-gray'};
   const eta=calcETA(v);
@@ -450,7 +459,7 @@ function getEstatus(v){
   return{label:'ATRASADO',cls:'badge-red'};
 }
 function sinReporte(v){
-  if(v.lleg_real||!v.sal_real)return false;
+  if(v.cancelado||v.lleg_real||!v.sal_real)return false;
   if(!v.ult_rep){
     return diffMin(new Date(),v.sal_real)>90;
   }
@@ -540,13 +549,14 @@ function actualizarUI(){
 }
 function renderKPIs(){
   const activos=viajes.filter(v=>!v.lleg_real);
-  let tiempo=0,riesgo=0,atrasado=0,sinIni=0,completado=0,sinRep=0;
+  let tiempo=0,riesgo=0,atrasado=0,sinIni=0,completado=0,sinRep=0,cancelado=0;
   viajes.forEach(v=>{
     const e=getEstatus(v);
     if(e.label==='A TIEMPO'||e.label==='EN TRÁNSITO')tiempo++;
     else if(e.label==='EN RIESGO')riesgo++;
     else if(e.label==='ATRASADO')atrasado++;
     else if(e.label==='SIN INICIAR')sinIni++;
+    else if(e.label==='CANCELADO')cancelado++;
     if(v.lleg_real)completado++;
     if(sinReporte(v))sinRep++;
   });
@@ -557,7 +567,8 @@ function renderKPIs(){
     <div class="kpi"><div class="kpi-dot" style="background:var(--red)"></div><div><div class="kpi-val" style="color:var(--red)">${atrasado}</div><div class="kpi-label">Atrasados</div></div></div>
     <div class="kpi"><div class="kpi-dot" style="background:var(--red);animation:pulse 1.5s infinite"></div><div><div class="kpi-val" style="color:var(--red)">${sinRep}</div><div class="kpi-label">Sin reporte</div></div></div>
     <div class="kpi"><div class="kpi-dot" style="background:var(--purple)"></div><div><div class="kpi-val" style="color:var(--purple)">${sinIni}</div><div class="kpi-label">Sin salir</div></div></div>
-    <div class="kpi"><div class="kpi-dot" style="background:var(--accent)"></div><div><div class="kpi-val" style="color:var(--accent)">${completado}</div><div class="kpi-label">Completados</div></div></div>`;
+    <div class="kpi"><div class="kpi-dot" style="background:var(--accent)"></div><div><div class="kpi-val" style="color:var(--accent)">${completado}</div><div class="kpi-label">Completados</div></div></div>
+    <div class="kpi"><div class="kpi-dot" style="background:#92400E"></div><div><div class="kpi-val" style="color:#92400E">${cancelado}</div><div class="kpi-label">Cancelados</div></div></div>`;
 }
 function setVista(v,el){
   vista=v;selectedId=null;
@@ -784,7 +795,7 @@ function renderHistorial(){
           <th style="padding:8px 12px;text-align:left;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--text-muted);border-bottom:1px solid var(--border)">Llegada real</th>
           <th style="padding:8px 12px;text-align:left;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--text-muted);border-bottom:1px solid var(--border)">Diferencia</th>
           <th style="padding:8px 12px;text-align:left;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--text-muted);border-bottom:1px solid var(--border)">Cumplimiento</th>
-          <th style="padding:8px 12px;text-align:left;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--text-muted);border-bottom:1px solid var(--border)">Observaciones</th>
+          <th style="padding:8px 12px;text-align:left;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--text-muted);border-bottom:1px solid var(--border)">Responsable / Comentarios</th>
         </tr>
       </thead>
       <tbody id="histTbody"></tbody>
@@ -809,35 +820,45 @@ function filtrarHistorial(){
   const kpisEl=document.getElementById('histKpis');
   if(kpisEl){
     const total=data.length;
-    const aTiempo=data.filter(h=>h.dif_min!==null&&h.dif_min<=0).length;
-    const tarde=data.filter(h=>h.dif_min!==null&&h.dif_min>0).length;
-    const pct=total>0?Math.round(aTiempo/total*100):0;
+    const aTiempo=data.filter(h=>h.cumplimiento==='A TIEMPO').length;
+    const tarde=data.filter(h=>h.cumplimiento&&h.cumplimiento.startsWith('TARDE')).length;
+    const cancelados=data.filter(h=>h.cumplimiento==='CANCELADO').length;
+    const efectivos=total-cancelados;
+    const pct=efectivos>0?Math.round(aTiempo/efectivos*100):0;
     kpisEl.innerHTML=`
       <div class="hist-kpi"><div class="hist-kpi-val">${total}</div><div class="hist-kpi-label">Viajes ${op||dest||fecha||q?'filtrados':'archivados'}</div></div>
       <div class="hist-kpi"><div class="hist-kpi-val" style="color:var(--green)">${aTiempo}</div><div class="hist-kpi-label">A tiempo</div></div>
       <div class="hist-kpi"><div class="hist-kpi-val" style="color:var(--red)">${tarde}</div><div class="hist-kpi-label">Con retraso</div></div>
+      <div class="hist-kpi"><div class="hist-kpi-val" style="color:#92400E">${cancelados}</div><div class="hist-kpi-label">Cancelados</div></div>
       <div class="hist-kpi"><div class="hist-kpi-val" style="color:var(--accent)">${pct}%</div><div class="hist-kpi-label">Cumplimiento</div></div>`;
   }
   const tbody=document.getElementById('histTbody');
   if(!tbody)return;
   if(!data.length){tbody.innerHTML=`<tr><td colspan="10" style="text-align:center;padding:40px;color:var(--text-muted)">Sin registros</td></tr>`;return;}
   tbody.innerHTML=data.map(h=>{
-    const aTiempo=h.dif_min!==null&&h.dif_min<=0;
-    const difHtml=h.dif_min!==null?fmtDif(h.dif_min):'—';
-    const cumplBadge=aTiempo
-      ?'<span class="badge badge-green">A TIEMPO</span>'
-      :`<span class="badge badge-red">TARDE</span>`;
-    return`<tr style="border-bottom:1px solid var(--border)">
+    const esCancelado=h.cumplimiento==='CANCELADO';
+    const difHtml=(!esCancelado&&h.dif_min!==null)?fmtDif(h.dif_min):'—';
+    const cumplBadge=esCancelado
+      ?'<span class="badge badge-cancel">CANCELADO</span>'
+      :h.cumplimiento==='A TIEMPO'
+        ?'<span class="badge badge-green">A TIEMPO</span>'
+        :`<span class="badge badge-red">TARDE</span>`;
+    return`<tr style="border-bottom:1px solid var(--border)${esCancelado?';background:#FFFBEB':''}">
       <td style="padding:9px 12px;font-size:12px">${fmtFecha(h.fecha)}</td>
       <td style="padding:9px 12px;font-weight:700">${h.unidad}</td>
       <td style="padding:9px 12px"><div style="font-weight:600">${h.destino}</div><div style="font-size:11px;color:var(--text-muted)">${h.origen}</div></td>
       <td style="padding:9px 12px;color:var(--text-sec)">${h.operador}</td>
       <td style="padding:9px 12px">${fmtH(h.sal_real)}</td>
       <td style="padding:9px 12px">${fmtH(h.lleg_prog)}</td>
-      <td style="padding:9px 12px;font-weight:600;color:var(--green)">${fmtH(h.lleg_real)}</td>
+      <td style="padding:9px 12px;font-weight:600;color:${esCancelado?'#92400E':'var(--green)'}">${esCancelado?'CANCELADO':fmtH(h.lleg_real)}</td>
       <td style="padding:9px 12px">${difHtml}</td>
       <td style="padding:9px 12px">${cumplBadge}</td>
-      <td style="padding:9px 12px;font-size:11px;color:var(--text-muted);max-width:200px">${h.obs||'—'}</td>
+      <td style="padding:9px 12px;font-size:11px;color:var(--text-muted);max-width:200px">
+        ${h.responsable?`<div style="font-weight:600;color:#92400E">${h.responsable}</div>`:''}
+        ${h.comentarios_cierre?`<div>${h.comentarios_cierre}</div>`:''}
+        ${h.obs?`<div style="color:var(--text-muted)">${h.obs}</div>`:''}
+        ${!h.responsable&&!h.comentarios_cierre&&!h.obs?'—':''}
+      </td>
     </tr>`;
   }).join('');
 }
