@@ -528,7 +528,7 @@ function resumenViaje(v){
   return txt;
 }
 function resumenFlota(){
-  const activos=viajes.filter(v=>!v.lleg_real);
+  const activos=viajes.filter(v=>!v.lleg_real&&!v.cancelado&&v.sal_real);
   const completados=viajes.filter(v=>v.lleg_real);
   const now=new Date();
   let txt=`🚛 *REPORTE DE FLOTA*\n`;
@@ -548,7 +548,7 @@ function actualizarUI(){
   document.getElementById('update-label').textContent='Actualizado '+fmtH(now);
 }
 function renderKPIs(){
-  const activos=viajes.filter(v=>!v.lleg_real);
+  const activos=viajes.filter(v=>!v.lleg_real&&!v.cancelado&&v.sal_real);
   let tiempo=0,riesgo=0,atrasado=0,sinIni=0,completado=0,sinRep=0,cancelado=0;
   viajes.forEach(v=>{
     const e=getEstatus(v);
@@ -607,7 +607,7 @@ function renderTabla(){
   const q=document.getElementById('buscar').value.toLowerCase();
   const fE=document.getElementById('filtroEstatus').value;
   const fD=document.getElementById('filtroDestino').value;
-  let data=vista==='activos'?viajes.filter(v=>!v.lleg_real):viajes;
+  let data=vista==='activos'?viajes.filter(v=>!v.lleg_real&&!v.cancelado&&v.sal_real):viajes;
   data=data.filter(v=>{
     const txt=(v.unidad+v.remolque+v.operador+v.destino+v.origen).toLowerCase();
     return(!q||txt.includes(q))&&(!fD||v.destino===fD)&&(!fE||getEstatus(v).label===fE);
