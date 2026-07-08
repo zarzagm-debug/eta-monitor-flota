@@ -612,6 +612,8 @@ function resumenFlota(){
 function actualizarUI(){
   renderKPIs();
   if(vista==='estadia'){const d=document.querySelector('.estadia-grid');if(d)d.remove();renderEstadia();}
+  else if(vista==='historial'){const d=document.querySelector('.hist-container');if(d)d.remove();renderHistorial();}
+  else if(vista==='rutas'){const d=document.querySelector('.rutas-grid');if(d)d.remove();renderRutas();}
   else renderTabla();
   const now=new Date();
   document.getElementById('update-time').textContent='↻ '+fmtH(now);
@@ -769,8 +771,11 @@ function renderDetail(v,eta){
             <div class="detail-item"><span class="lbl">Salida ideal</span><span class="val">${fmtH(v.sal_prog)}</span></div>
             <div class="detail-item"><span class="lbl">Salida real</span><span class="val">${fmtH(v.sal_real)}</span></div>
             <div class="detail-item"><span class="lbl">Llegada prog.</span><span class="val">${fmtH(v.lleg_prog)}</span></div>
-            <div class="detail-item"><span class="lbl">ETA estimado</span><span class="val" style="color:var(--accent)">${fmtH(eta)}</span></div>
-            ${v.lleg_real?`<div class="detail-item"><span class="lbl">Llegada real</span><span class="val" style="color:var(--green)">${fmtH(v.lleg_real)}</span></div>`:''}
+            ${!v.lleg_real&&!v.cancelado?`<div class="detail-item"><span class="lbl">ETA estimado</span><span class="val" style="color:var(--accent)">${fmtH(eta)}</span></div>`:''}
+            ${v.lleg_real&&!v.cancelado?`<div class="detail-item"><span class="lbl">Llegada real</span><span class="val" style="color:var(--green)">${fmtH(v.lleg_real)}</span></div>`:''}
+            ${v.lleg_real&&!v.cancelado?`<div class="detail-item"><span class="lbl">Salida cliente</span><span class="val" style="color:${v.sal_cliente?'var(--accent)':'var(--text-muted)'}">${v.sal_cliente?fmtH(v.sal_cliente):'Pendiente'}</span></div>`:''}
+            ${v.lleg_real&&!v.cancelado&&v.sal_cliente?`<div class="detail-item"><span class="lbl">Estadía</span><span class="val" style="color:${claseEstadia(minutosEstadia(v))==='rojo'?'var(--red)':claseEstadia(minutosEstadia(v))==='naranja'?'var(--yellow)':'var(--green)'}">${fmtEstadia(minutosEstadia(v))}</span></div>`:''}
+            ${v.cancelado?`<div class="detail-item"><span class="lbl">Estatus</span><span class="val" style="color:#92400E">CANCELADO</span></div>`:''}
           </div>
         </div>
         <div>
