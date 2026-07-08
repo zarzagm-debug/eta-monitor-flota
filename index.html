@@ -802,14 +802,16 @@ function renderDetail(v,eta){
         <div>
           <div class="detail-section"><h4>Posición</h4>
             <div class="detail-item"><span class="lbl">Último reporte</span><span class="val">${fmtH(v.ult_rep)}</span></div>
-            <div class="detail-item"><span class="lbl">Unidad</span><span class="val">${v.unidad}</span></div>
-            <div class="detail-item"><span class="lbl">Remolque(s)</span><span class="val">${v.remolque||'—'}</span></div>
-            <div class="detail-item"><span class="lbl">Operador</span><span class="val">${v.operador||'—'}</span></div>
           </div>
           <div class="detail-actions">
             ${mapsPos?`<a class="detail-btn detail-btn-maps" href="${mapsPos}" target="_blank" onclick="event.stopPropagation()">📍 Ver posición</a>`:''}
             ${mapsRuta&&!v.lleg_real?`<a class="detail-btn detail-btn-maps" href="${mapsRuta}" target="_blank" onclick="event.stopPropagation()">🗺️ Ruta</a>`:''}
             ${mapsDestCompletado&&v.lleg_real?`<a class="detail-btn detail-btn-maps" href="${mapsDestCompletado}" target="_blank" onclick="event.stopPropagation()">📍 Destino</a>`:''}
+          </div>
+          <div class="detail-section" style="margin-top:10px"><h4>Generales</h4>
+            <div class="detail-item"><span class="lbl">Unidad</span><span class="val">${v.unidad}</span></div>
+            <div class="detail-item"><span class="lbl">Remolque(s)</span><span class="val">${v.remolque||'—'}</span></div>
+            <div class="detail-item"><span class="lbl">Operador</span><span class="val">${v.operador||'—'}</span></div>
           </div>
         </div>
         <div>
