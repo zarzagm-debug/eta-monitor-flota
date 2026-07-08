@@ -605,7 +605,9 @@ function resumenFlota(){
 
 // RENDER
 function actualizarUI(){
-  renderKPIs();renderTabla();
+  renderKPIs();
+  if(vista==='estadia'){const d=document.querySelector('.estadia-grid');if(d)d.remove();renderEstadia();}
+  else renderTabla();
   const now=new Date();
   document.getElementById('update-time').textContent='↻ '+fmtH(now);
   document.getElementById('update-label').textContent='Actualizado '+fmtH(now);
@@ -677,7 +679,7 @@ function setVista(v,el){
   }
 }
 function renderTabla(){
-  if(vista==='rutas'||vista==='historial')return;
+  if(vista==='rutas'||vista==='historial'||vista==='estadia')return;
   const q=document.getElementById('buscar').value.toLowerCase();
   const fE=document.getElementById('filtroEstatus').value;
   const fD=document.getElementById('filtroDestino').value;
