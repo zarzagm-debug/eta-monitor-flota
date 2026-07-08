@@ -236,12 +236,17 @@
     <select id="filtroDestino" onchange="renderTabla()">
       <option value="">Todos los destinos</option>
     </select>
-    <div class="tab-group">
-      <button class="tab-btn active" onclick="setVista('activos',this)">En tránsito</button>
-      <button class="tab-btn" onclick="setVista('todos',this)">Todos</button>
-      <button class="tab-btn" onclick="setVista('rutas',this)">Rutas</button>
-      <button class="tab-btn" onclick="setVista('estadia',this)">En estadía</button>
-      <button class="tab-btn" onclick="setVista('historial',this)">Historial</button>
+    <div style="display:flex;gap:8px;margin-left:auto;align-items:center">
+      <div class="tab-group">
+        <button class="tab-btn active" onclick="setVista('activos',this)">En tránsito</button>
+        <button class="tab-btn" onclick="setVista('todos',this)">Todos</button>
+        <button class="tab-btn" onclick="setVista('estadia',this)">En estadía</button>
+      </div>
+      <div style="width:1px;height:24px;background:var(--border)"></div>
+      <div class="tab-group" style="background:var(--surface2)">
+        <button class="tab-btn" onclick="setVista('rutas',this)" style="color:var(--text-muted)">Rutas</button>
+        <button class="tab-btn" onclick="setVista('historial',this)" style="color:var(--text-muted)">Historial</button>
+      </div>
     </div>
   </div>
   <div class="tbl-container" id="tblContainer">
@@ -636,10 +641,10 @@ function renderKPIs(){
     <div class="kpi"><div class="kpi-dot" style="background:var(--accent)"></div><div><div class="kpi-val" style="color:var(--accent)">${completado}</div><div class="kpi-label">Completados</div></div></div>
     <div class="kpi"><div class="kpi-dot" style="background:#92400E"></div><div><div class="kpi-val" style="color:#92400E">${cancelado}</div><div class="kpi-label">Cancelados</div></div></div>`;
 }
-function setVistaEstadia(){
-  const btn=document.querySelector('.tab-btn:nth-child(4)');
-  if(btn)setVista('estadia',btn);
-}
+
+
+
+
 function setVista(v,el){
   vista=v;selectedId=null;
   document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
