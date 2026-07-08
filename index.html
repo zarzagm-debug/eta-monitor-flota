@@ -802,6 +802,9 @@ function renderDetail(v,eta){
         <div>
           <div class="detail-section"><h4>Posición</h4>
             <div class="detail-item"><span class="lbl">Último reporte</span><span class="val">${fmtH(v.ult_rep)}</span></div>
+            <div class="detail-item"><span class="lbl">Unidad</span><span class="val">${v.unidad}</span></div>
+            <div class="detail-item"><span class="lbl">Remolque(s)</span><span class="val">${v.remolque||'—'}</span></div>
+            <div class="detail-item"><span class="lbl">Operador</span><span class="val">${v.operador||'—'}</span></div>
           </div>
           <div class="detail-actions">
             ${mapsPos?`<a class="detail-btn detail-btn-maps" href="${mapsPos}" target="_blank" onclick="event.stopPropagation()">📍 Ver posición</a>`:''}
@@ -811,9 +814,11 @@ function renderDetail(v,eta){
         </div>
         <div>
           <div class="detail-section"><h4>${esEventual?'Ruta eventual':'Ruta'}</h4>
+            <div class="detail-item"><span class="lbl">Origen</span><span class="val">${v.origen||'—'}</span></div>
+            <div class="detail-item"><span class="lbl">Destino</span><span class="val">${v.destino||'—'}</span></div>
             <div class="detail-item"><span class="lbl">Distancia est.</span><span class="val">${distTot?distTot+' km':'—'}</span></div>
             <div class="detail-item"><span class="lbl">Tiempo estándar</span><span class="val">${hrsStd?hrsStd+' hrs':'—'}</span></div>
-            ${esEventual?`<div class="detail-item"><span class="lbl">Tipo</span><span class="val" style="color:var(--purple)">Eventual</span></div>`:''}
+            <div class="detail-item"><span class="lbl">Tipo</span><span class="val" style="color:${esEventual?'var(--purple)':'var(--accent)'}">${esEventual?'Eventual':'Fija'}</span></div>
           </div>
           <div class="detail-actions">
             ${mapsOrig?`<a class="detail-btn" href="${mapsOrig}" target="_blank" onclick="event.stopPropagation()">📍 Origen</a>`:''}
