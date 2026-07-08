@@ -737,14 +737,32 @@ function renderTabla(){
 
 function renderDetail(v,eta){
   const ruta=getRuta(v.origen,v.destino);
-  const distTot=ruta?Math.round(haversine(ruta.lat_o,ruta.lon_o,ruta.lat_d,ruta.lon_d)*ruta.factor):null;
+  const esEventual=!ruta&&v.lat_o_ev&&v.lat_d_ev;
 
+  // Distancia
+  let distTot=null;
+  if(ruta) distTot=Math.round(haversine(ruta.lat_o,ruta.lon_o,ruta.lat_d,ruta.lon_d)*ruta.factor);
+  else if(esEventual) distTot=Math.round(haversine(v.lat_o_ev,v.lon_o_ev,v.lat_d_ev,v.lon_d_ev)*FACTOR);
+
+  // Links Maps — posición actual
   const mapsPos=v.lat&&v.lon?`https://www.google.com/maps?q=${v.lat},${v.lon}`:'';
-  const mapsRuta=(v.lat&&v.lon&&ruta)?`https://www.google.com/maps/dir/${v.lat},${v.lon}/${ruta.lat_d},${ruta.lon_d}`:'';
-  const mapsOrig=ruta?`https://www.google.com/maps?q=${ruta.lat_o},${ruta.lon_o}`:'';
-  const mapsDest=ruta?`https://www.google.com/maps?q=${ruta.lat_d},${ruta.lon_d}`:'';
+  // Ruta desde posición actual a destino
+  const latDest=ruta?ruta.lat_d:v.lat_d_ev;
+  const lonDest=ruta?ruta.lon_d:v.lon_d_ev;
+  const mapsRuta=(v.lat&&v.lon&&latDest)?`https://www.google.com/maps/dir/${v.lat},${v.lon}/${latDest},${lonDest}`:'';
+  // Origen
+  const latOrig=ruta?ruta.lat_o:v.lat_o_ev;
+  const lonOrig=ruta?ruta.lon_o:v.lon_o_ev;
+  const mapsOrig=latOrig?`https://www.google.com/maps?q=${latOrig},${lonOrig}`:'';
+  // Destino
+  const mapsDest=latDest?`https://www.google.com/maps?q=${latDest},${lonDest}`:'';
+  // Destino cuando completado — usar coordenadas reales del destino
+  const mapsDestCompletado=(v.lleg_real&&latDest)?`https://www.google.com/maps?q=${latDest},${lonDest}`:'';
 
-  // Bitácora parseada
+  // Tiempo estándar
+  const hrsStd=ruta?ruta.hrs:v.hrs_ev;
+
+  // Bitácora
   let bitacoraHtml='';
   if(v.obs){
     const entradas=v.obs.split('|').map(e=>{
@@ -763,6 +781,9 @@ function renderDetail(v,eta){
       </div>`;
   }
 
+  const estadiaMin=minutosEstadia(v);
+  const estadiaCls=claseEstadia(estadiaMin);
+
   return `<tr class="detail-row"><td colspan="11">
     <div class="detail-panel">
       <div class="detail-grid">
@@ -774,24 +795,25 @@ function renderDetail(v,eta){
             ${!v.lleg_real&&!v.cancelado?`<div class="detail-item"><span class="lbl">ETA estimado</span><span class="val" style="color:var(--accent)">${fmtH(eta)}</span></div>`:''}
             ${v.lleg_real&&!v.cancelado?`<div class="detail-item"><span class="lbl">Llegada real</span><span class="val" style="color:var(--green)">${fmtH(v.lleg_real)}</span></div>`:''}
             ${v.lleg_real&&!v.cancelado?`<div class="detail-item"><span class="lbl">Salida cliente</span><span class="val" style="color:${v.sal_cliente?'var(--accent)':'var(--text-muted)'}">${v.sal_cliente?fmtH(v.sal_cliente):'Pendiente'}</span></div>`:''}
-            ${v.lleg_real&&!v.cancelado&&v.sal_cliente?`<div class="detail-item"><span class="lbl">Estadía</span><span class="val" style="color:${claseEstadia(minutosEstadia(v))==='rojo'?'var(--red)':claseEstadia(minutosEstadia(v))==='naranja'?'var(--yellow)':'var(--green)'}">${fmtEstadia(minutosEstadia(v))}</span></div>`:''}
+            ${v.lleg_real&&!v.cancelado&&v.sal_cliente?`<div class="detail-item"><span class="lbl">Estadía</span><span class="val" style="color:${estadiaCls==='rojo'?'var(--red)':estadiaCls==='naranja'?'var(--yellow)':'var(--green)'}">${fmtEstadia(estadiaMin)}</span></div>`:''}
             ${v.cancelado?`<div class="detail-item"><span class="lbl">Estatus</span><span class="val" style="color:#92400E">CANCELADO</span></div>`:''}
           </div>
         </div>
         <div>
           <div class="detail-section"><h4>Posición</h4>
             <div class="detail-item"><span class="lbl">Último reporte</span><span class="val">${fmtH(v.ult_rep)}</span></div>
-            <div class="detail-item"><span class="lbl">Viaje</span><span class="val">${v.id}</span></div>
           </div>
           <div class="detail-actions">
             ${mapsPos?`<a class="detail-btn detail-btn-maps" href="${mapsPos}" target="_blank" onclick="event.stopPropagation()">📍 Ver posición</a>`:''}
-            ${mapsRuta?`<a class="detail-btn detail-btn-maps" href="${mapsRuta}" target="_blank" onclick="event.stopPropagation()">🗺️ Ruta</a>`:''}
+            ${mapsRuta&&!v.lleg_real?`<a class="detail-btn detail-btn-maps" href="${mapsRuta}" target="_blank" onclick="event.stopPropagation()">🗺️ Ruta</a>`:''}
+            ${mapsDestCompletado&&v.lleg_real?`<a class="detail-btn detail-btn-maps" href="${mapsDestCompletado}" target="_blank" onclick="event.stopPropagation()">📍 Destino</a>`:''}
           </div>
         </div>
         <div>
-          <div class="detail-section"><h4>Ruta</h4>
+          <div class="detail-section"><h4>${esEventual?'Ruta eventual':'Ruta'}</h4>
             <div class="detail-item"><span class="lbl">Distancia est.</span><span class="val">${distTot?distTot+' km':'—'}</span></div>
-            <div class="detail-item"><span class="lbl">Tiempo estándar</span><span class="val">${ruta?ruta.hrs+' hrs':'—'}</span></div>
+            <div class="detail-item"><span class="lbl">Tiempo estándar</span><span class="val">${hrsStd?hrsStd+' hrs':'—'}</span></div>
+            ${esEventual?`<div class="detail-item"><span class="lbl">Tipo</span><span class="val" style="color:var(--purple)">Eventual</span></div>`:''}
           </div>
           <div class="detail-actions">
             ${mapsOrig?`<a class="detail-btn" href="${mapsOrig}" target="_blank" onclick="event.stopPropagation()">📍 Origen</a>`:''}
