@@ -152,6 +152,25 @@
   .hist-kpi{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:10px 14px;flex:1;min-width:120px}
   .hist-kpi-val{font-size:20px;font-weight:800;letter-spacing:-.02em}
   .hist-kpi-label{font-size:10px;color:var(--text-muted);text-transform:uppercase;letter-spacing:.04em;margin-top:2px}
+  /* ESTADÍA */
+  @keyframes estadiaPulse{0%,100%{background:rgba(220,38,38,.05)}50%{background:rgba(220,38,38,.15)}}
+  .estadia-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:14px}
+  .estadia-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:16px;box-shadow:var(--shadow);position:relative;overflow:hidden}
+  .estadia-card::before{content:'';position:absolute;left:0;top:0;bottom:0;width:4px}
+  .estadia-card.verde::before{background:var(--green)}
+  .estadia-card.naranja::before{background:var(--yellow)}
+  .estadia-card.rojo::before{background:var(--red)}
+  .estadia-card.rojo{animation:estadiaPulse 2s ease-in-out infinite}
+  .estadia-card.rojo:hover{animation:none}
+  .estadia-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
+  .estadia-unidad{font-size:18px;font-weight:800;letter-spacing:-.02em}
+  .estadia-tiempo{font-size:22px;font-weight:800;letter-spacing:-.02em}
+  .estadia-tiempo.verde{color:var(--green)}
+  .estadia-tiempo.naranja{color:var(--yellow)}
+  .estadia-tiempo.rojo{color:var(--red)}
+  .estadia-label{font-size:10px;color:var(--text-muted);text-transform:uppercase;letter-spacing:.06em}
+  .estadia-info{font-size:12px;color:var(--text-sec);margin-top:6px}
+  .estadia-info span{font-weight:600;color:var(--text)}
   /* MODAL */
   .modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.5);display:none;align-items:center;justify-content:center;z-index:200;padding:20px}
   .modal-overlay.open{display:flex}
@@ -221,6 +240,7 @@
       <button class="tab-btn active" onclick="setVista('activos',this)">En tránsito</button>
       <button class="tab-btn" onclick="setVista('todos',this)">Todos</button>
       <button class="tab-btn" onclick="setVista('rutas',this)">Rutas</button>
+      <button class="tab-btn" onclick="setVista('estadia',this)">En estadía</button>
       <button class="tab-btn" onclick="setVista('historial',this)">Historial</button>
     </div>
   </div>
@@ -365,6 +385,15 @@ function parsearViajes(data){
       obs:String(r['Observaciones']||'').trim(),
       responsable:String(r['Responsable']||'').trim(),
       comentarios_cierre:String(r['Comentarios cierre']||'').trim(),
+      sal_cliente:parseHora(r['Salida cliente']),
+      estadia_min:r['Estadía (min)']!==''?+r['Estadía (min)']:null,
+      sal_cliente:parseHora(r['Salida cliente']),
+      estadia_min:r['Estadía (min)']!==''?+r['Estadía (min)']:null,
+      lat_o_ev:r['Lat origen eventual']?+r['Lat origen eventual']:null,
+      lon_o_ev:r['Lon origen eventual']?+r['Lon origen eventual']:null,
+      lat_d_ev:r['Lat destino eventual']?+r['Lat destino eventual']:null,
+      lon_d_ev:r['Lon destino eventual']?+r['Lon destino eventual']:null,
+      hrs_ev:r['Hrs tránsito eventual']?+r['Hrs tránsito eventual']:null,
     };
   }).filter(Boolean);
 }
@@ -389,6 +418,8 @@ function parsearHistorico(data){
       obs:String(r['Observaciones']||'').trim(),
       responsable:String(r['Responsable']||'').trim(),
       comentarios_cierre:String(r['Comentarios cierre']||'').trim(),
+      sal_cliente:parseHora(r['Salida cliente']),
+      estadia_min:r['Estadía (min)']!==''?+r['Estadía (min)']:null,
     };
   }).filter(Boolean);
 }
@@ -416,6 +447,18 @@ function getRuta(o,d){return rutas.find(r=>r.origen===o&&r.destino===d)||null;}
 function calcETA(v){
   if(v.lleg_real)return v.lleg_real;
   if(!v.sal_real)return null;
+  // Ruta eventual — usar coords V-Z
+  if(v.lat_o_ev&&v.lat_d_ev&&v.hrs_ev){
+    if(v.lat&&v.lon&&v.ult_rep){
+      const distRec=haversine(v.lat_o_ev,v.lon_o_ev,v.lat,v.lon)*FACTOR;
+      const distTot=haversine(v.lat_o_ev,v.lon_o_ev,v.lat_d_ev,v.lon_d_ev)*FACTOR;
+      const distRest=Math.max(0,distTot-distRec);
+      const horasRec=(v.ult_rep-v.sal_real)/3600000;
+      if(horasRec>0.05){const vel=distRec/horasRec;if(vel>=5)return addHoras(v.ult_rep,distRest/vel);}
+    }
+    return addHoras(v.sal_real,v.hrs_ev);
+  }
+  // Ruta fija
   const ruta=getRuta(v.origen,v.destino);
   if(!ruta)return null;
   if(v.lat&&v.lon&&v.ult_rep){
@@ -430,6 +473,13 @@ function calcETA(v){
 function calcPct(v){
   if(v.lleg_real)return 100;
   if(!v.sal_real)return 0;
+  if(v.lat_o_ev&&v.lat_d_ev){
+    if(v.lat&&v.lon){
+      const distRec=haversine(v.lat_o_ev,v.lon_o_ev,v.lat,v.lon)*FACTOR;
+      const distTot=haversine(v.lat_o_ev,v.lon_o_ev,v.lat_d_ev,v.lon_d_ev)*FACTOR;
+      return Math.min(99,Math.max(0,Math.round(distRec/distTot*100)));
+    }
+  }
   const ruta=getRuta(v.origen,v.destino);
   if(!ruta)return 0;
   if(v.lat&&v.lon){
@@ -441,6 +491,24 @@ function calcPct(v){
   const tot=(v.lleg_prog-v.sal_real)/3600000;
   const elap=(now-v.sal_real)/3600000;
   return Math.min(99,Math.max(0,Math.round(elap/tot*100)));
+}
+function enEstadia(v){
+  // Unidad con llegada real, sin cancelar, sin salida cliente
+  return v.lleg_real && !v.cancelado && !v.sal_cliente;
+}
+function minutosEstadia(v){
+  if(!v.lleg_real||v.cancelado)return 0;
+  const fin=v.sal_cliente||new Date();
+  return Math.round((fin-v.lleg_real)/60000);
+}
+function claseEstadia(min){
+  if(min<30)return'verde';
+  if(min<60)return'naranja';
+  return'rojo';
+}
+function fmtEstadia(min){
+  if(min<60)return min+' min';
+  return(min/60).toFixed(1)+' hrs';
 }
 function getEstatus(v){
   if(v.cancelado)return{label:'CANCELADO',cls:'badge-cancel'};
@@ -544,7 +612,7 @@ function actualizarUI(){
 }
 function renderKPIs(){
   const activos=viajes.filter(v=>!v.lleg_real&&!v.cancelado&&v.sal_real);
-  let tiempo=0,riesgo=0,atrasado=0,sinIni=0,completado=0,sinRep=0,cancelado=0;
+  let tiempo=0,riesgo=0,atrasado=0,sinIni=0,completado=0,sinRep=0,cancelado=0,enEstadiaCount=0,estadiaAlerta=false;
   viajes.forEach(v=>{
     const e=getEstatus(v);
     if(e.label==='A TIEMPO'||e.label==='EN TRÁNSITO')tiempo++;
@@ -554,6 +622,7 @@ function renderKPIs(){
     else if(e.label==='CANCELADO')cancelado++;
     if(v.lleg_real)completado++;
     if(sinReporte(v))sinRep++;
+    if(enEstadia(v)){enEstadiaCount++;if(minutosEstadia(v)>=60)estadiaAlerta=true;}
   });
   document.getElementById('kpiBar').innerHTML=`
     <div class="kpi"><div class="kpi-dot" style="background:#6B7280"></div><div><div class="kpi-val">${activos.length}</div><div class="kpi-label">En tránsito</div></div></div>
@@ -564,6 +633,10 @@ function renderKPIs(){
     <div class="kpi"><div class="kpi-dot" style="background:var(--purple)"></div><div><div class="kpi-val" style="color:var(--purple)">${sinIni}</div><div class="kpi-label">Sin salir</div></div></div>
     <div class="kpi"><div class="kpi-dot" style="background:var(--accent)"></div><div><div class="kpi-val" style="color:var(--accent)">${completado}</div><div class="kpi-label">Completados</div></div></div>
     <div class="kpi"><div class="kpi-dot" style="background:#92400E"></div><div><div class="kpi-val" style="color:#92400E">${cancelado}</div><div class="kpi-label">Cancelados</div></div></div>`;
+}
+function setVistaEstadia(){
+  const btn=document.querySelector('.tab-btn:nth-child(4)');
+  if(btn)setVista('estadia',btn);
 }
 function setVista(v,el){
   vista=v;selectedId=null;
@@ -577,7 +650,13 @@ function setVista(v,el){
   const buscar=document.getElementById('buscar');
   const filtroEstatus=document.getElementById('filtroEstatus');
   const filtroDestino=document.getElementById('filtroDestino');
-  if(vista==='historial'){
+  if(vista==='estadia'){
+    tbl.style.display='none';
+    buscar.style.display='none';
+    filtroEstatus.style.display='none';
+    filtroDestino.style.display='none';
+    renderEstadia();
+  } else if(vista==='historial'){
     tbl.style.display='none';
     buscar.style.display='none';
     filtroEstatus.style.display='none';
@@ -650,12 +729,7 @@ function renderTabla(){
 function renderDetail(v,eta){
   const ruta=getRuta(v.origen,v.destino);
   const distTot=ruta?Math.round(haversine(ruta.lat_o,ruta.lon_o,ruta.lat_d,ruta.lon_d)*ruta.factor):null;
-  let velReal='—';
-  if(v.lat&&v.lon&&v.sal_real&&v.ult_rep&&ruta){
-    const distRec=haversine(ruta.lat_o,ruta.lon_o,v.lat,v.lon)*ruta.factor;
-    const hrs=(v.ult_rep-v.sal_real)/3600000;
-    if(hrs>0)velReal=Math.round(distRec/hrs)+' km/h';
-  }
+
   const mapsPos=v.lat&&v.lon?`https://www.google.com/maps?q=${v.lat},${v.lon}`:'';
   const mapsRuta=(v.lat&&v.lon&&ruta)?`https://www.google.com/maps/dir/${v.lat},${v.lon}/${ruta.lat_d},${ruta.lon_d}`:'';
   const mapsOrig=ruta?`https://www.google.com/maps?q=${ruta.lat_o},${ruta.lon_o}`:'';
@@ -695,7 +769,6 @@ function renderDetail(v,eta){
         <div>
           <div class="detail-section"><h4>Posición</h4>
             <div class="detail-item"><span class="lbl">Último reporte</span><span class="val">${fmtH(v.ult_rep)}</span></div>
-            <div class="detail-item"><span class="lbl">Velocidad real</span><span class="val">${velReal}</span></div>
             <div class="detail-item"><span class="lbl">Viaje</span><span class="val">${v.id}</span></div>
           </div>
           <div class="detail-actions">
@@ -752,6 +825,45 @@ function renderRutas(){
   document.getElementById('tblContainer').appendChild(div);
 }
 
+function renderEstadia(){
+  const div=document.createElement('div');
+  div.className='estadia-grid hist-container';
+  const enEst=viajes.filter(v=>enEstadia(v));
+  if(!enEst.length){
+    div.innerHTML='<div class="empty-state" style="grid-column:1/-1"><p>No hay unidades en estadía actualmente.</p></div>';
+    document.getElementById('tblContainer').appendChild(div);
+    return;
+  }
+  div.innerHTML=enEst.map(v=>{
+    const min=minutosEstadia(v);
+    const cls=claseEstadia(min);
+    const tiempoStr=fmtEstadia(min);
+    const llegH=fmtH(v.lleg_real);
+    return`<div class="estadia-card ${cls}">
+      <div class="estadia-header">
+        <div>
+          <div class="estadia-label">Unidad</div>
+          <div class="estadia-unidad">${v.unidad}</div>
+          <div style="font-size:11px;color:var(--text-muted)">${v.remolque||'—'}</div>
+        </div>
+        <div style="text-align:right">
+          <div class="estadia-label">En estadía</div>
+          <div class="estadia-tiempo ${cls}">${tiempoStr}</div>
+          <div style="font-size:10px;color:var(--text-muted)">${cls==='verde'?'✓ OK':cls==='naranja'?'⚠ Atención':'🔴 Urgente'}</div>
+        </div>
+      </div>
+      <div class="estadia-info">
+        <div><span>${v.destino}</span></div>
+        <div style="margin-top:4px;color:var(--text-muted)">
+          Operador: <span>${v.operador||'—'}</span> &nbsp;|&nbsp; Llegó: <span>${llegH}</span>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+  document.getElementById('tblContainer').appendChild(div);
+  // Actualizar cada minuto
+  setTimeout(()=>{if(vista==='estadia'){const d=document.querySelector('.estadia-grid');if(d)d.remove();renderEstadia();}},60000);
+}
 function renderHistorial(){
   const div=document.createElement('div');
   div.className='hist-container';
@@ -790,6 +902,7 @@ function renderHistorial(){
           <th style="padding:8px 12px;text-align:left;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--text-muted);border-bottom:1px solid var(--border)">Llegada real</th>
           <th style="padding:8px 12px;text-align:left;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--text-muted);border-bottom:1px solid var(--border)">Diferencia</th>
           <th style="padding:8px 12px;text-align:left;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--text-muted);border-bottom:1px solid var(--border)">Cumplimiento</th>
+          <th style="padding:8px 12px;text-align:left;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--text-muted);border-bottom:1px solid var(--border)">Estadía</th>
           <th style="padding:8px 12px;text-align:left;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--text-muted);border-bottom:1px solid var(--border)">Responsable / Comentarios</th>
         </tr>
       </thead>
@@ -820,6 +933,8 @@ function filtrarHistorial(){
     const cancelados=data.filter(h=>h.cumplimiento==='CANCELADO').length;
     const efectivos=total-cancelados;
     const pct=efectivos>0?Math.round(aTiempo/efectivos*100):0;
+    const conEstadia=data.filter(h=>h.estadia_min!==null&&h.estadia_min>0);
+    const estadiaProm=conEstadia.length>0?fmtEstadia(Math.round(conEstadia.reduce((s,h)=>s+h.estadia_min,0)/conEstadia.length)):null;
     kpisEl.innerHTML=`
       <div class="hist-kpi"><div class="hist-kpi-val">${total}</div><div class="hist-kpi-label">Viajes ${op||dest||fecha||q?'filtrados':'archivados'}</div></div>
       <div class="hist-kpi"><div class="hist-kpi-val" style="color:var(--green)">${aTiempo}</div><div class="hist-kpi-label">A tiempo</div></div>
@@ -848,6 +963,9 @@ function filtrarHistorial(){
       <td style="padding:9px 12px;font-weight:600;color:${esCancelado?'#92400E':'var(--green)'}">${esCancelado?'CANCELADO':fmtH(h.lleg_real)}</td>
       <td style="padding:9px 12px">${difHtml}</td>
       <td style="padding:9px 12px">${cumplBadge}</td>
+      <td style="padding:9px 12px;font-size:12px;font-weight:${h.estadia_min?600:400};color:${h.estadia_min>=60?'var(--red)':h.estadia_min>=30?'var(--yellow)':'var(--green)'}">
+        ${h.estadia_min?fmtEstadia(h.estadia_min):'—'}
+      </td>
       <td style="padding:9px 12px;font-size:11px;color:var(--text-muted);max-width:200px">
         ${h.responsable?`<div style="font-weight:600;color:#92400E">${h.responsable}</div>`:''}
         ${h.comentarios_cierre?`<div>${h.comentarios_cierre}</div>`:''}
