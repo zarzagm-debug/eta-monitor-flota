@@ -1004,7 +1004,8 @@ function filtrarHistorial(){
       <div class="hist-kpi"><div class="hist-kpi-val" style="color:var(--green)">${aTiempo}</div><div class="hist-kpi-label">A tiempo</div></div>
       <div class="hist-kpi"><div class="hist-kpi-val" style="color:var(--red)">${tarde}</div><div class="hist-kpi-label">Con retraso</div></div>
       <div class="hist-kpi"><div class="hist-kpi-val" style="color:#92400E">${cancelados}</div><div class="hist-kpi-label">Cancelados</div></div>
-      <div class="hist-kpi"><div class="hist-kpi-val" style="color:var(--accent)">${pct}%</div><div class="hist-kpi-label">Cumplimiento</div></div>`;
+      <div class="hist-kpi"><div class="hist-kpi-val" style="color:var(--accent)">${pct}%</div><div class="hist-kpi-label">Cumplimiento</div></div>
+      ${estadiaProm?`<div class="hist-kpi"><div class="hist-kpi-val" style="color:var(--yellow)">${estadiaProm}</div><div class="hist-kpi-label">Estadía prom.</div></div>`:''}`;
   }
   const tbody=document.getElementById('histTbody');
   if(!tbody)return;
