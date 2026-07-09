@@ -635,19 +635,33 @@ function renderKPIs(){
     if(enEstadia(v)){enEstadiaCount++;if(minutosEstadia(v)>=60)estadiaAlerta=true;}
   });
   document.getElementById('kpiBar').innerHTML=`
-    <div class="kpi"><div class="kpi-dot" style="background:#6B7280"></div><div><div class="kpi-val">${activos.length}</div><div class="kpi-label">En tránsito</div></div></div>
-    <div class="kpi"><div class="kpi-dot" style="background:var(--green)"></div><div><div class="kpi-val" style="color:var(--green)">${tiempo}</div><div class="kpi-label">A tiempo</div></div></div>
-    <div class="kpi"><div class="kpi-dot" style="background:var(--yellow)"></div><div><div class="kpi-val" style="color:var(--yellow)">${riesgo}</div><div class="kpi-label">En riesgo</div></div></div>
-    <div class="kpi"><div class="kpi-dot" style="background:var(--red)"></div><div><div class="kpi-val" style="color:var(--red)">${atrasado}</div><div class="kpi-label">Atrasados</div></div></div>
-    <div class="kpi"><div class="kpi-dot" style="background:var(--red);animation:pulse 1.5s infinite"></div><div><div class="kpi-val" style="color:var(--red)">${sinRep}</div><div class="kpi-label">Sin reporte</div></div></div>
-    <div class="kpi"><div class="kpi-dot" style="background:var(--purple)"></div><div><div class="kpi-val" style="color:var(--purple)">${sinIni}</div><div class="kpi-label">Sin salir</div></div></div>
-    <div class="kpi"><div class="kpi-dot" style="background:var(--accent)"></div><div><div class="kpi-val" style="color:var(--accent)">${completado}</div><div class="kpi-label">Completados</div></div></div>
-    <div class="kpi"><div class="kpi-dot" style="background:#92400E"></div><div><div class="kpi-val" style="color:#92400E">${cancelado}</div><div class="kpi-label">Cancelados</div></div></div>`;
+    <div class="kpi" style="cursor:pointer" onclick="irAVista('activos','')"><div class="kpi-dot" style="background:#6B7280"></div><div><div class="kpi-val">${activos.length}</div><div class="kpi-label">En tránsito</div></div></div>
+    <div class="kpi" style="cursor:pointer" onclick="irAVista('activos','A TIEMPO')"><div class="kpi-dot" style="background:var(--green)"></div><div><div class="kpi-val" style="color:var(--green)">${tiempo}</div><div class="kpi-label">A tiempo</div></div></div>
+    <div class="kpi" style="cursor:pointer" onclick="irAVista('activos','EN RIESGO')"><div class="kpi-dot" style="background:var(--yellow)"></div><div><div class="kpi-val" style="color:var(--yellow)">${riesgo}</div><div class="kpi-label">En riesgo</div></div></div>
+    <div class="kpi" style="cursor:pointer" onclick="irAVista('activos','ATRASADO')"><div class="kpi-dot" style="background:var(--red)"></div><div><div class="kpi-val" style="color:var(--red)">${atrasado}</div><div class="kpi-label">Atrasados</div></div></div>
+    <div class="kpi" style="cursor:pointer" onclick="irAVista('activos','SIN REPORTE')"><div class="kpi-dot" style="background:var(--red);animation:pulse 1.5s infinite"></div><div><div class="kpi-val" style="color:var(--red)">${sinRep}</div><div class="kpi-label">Sin reporte</div></div></div>
+    <div class="kpi" style="cursor:pointer" onclick="irAVista('todos','SIN INICIAR')"><div class="kpi-dot" style="background:var(--purple)"></div><div><div class="kpi-val" style="color:var(--purple)">${sinIni}</div><div class="kpi-label">Sin salir</div></div></div>
+    <div class="kpi" style="cursor:pointer" onclick="irAVista('todos','COMPLETADO')"><div class="kpi-dot" style="background:var(--accent)"></div><div><div class="kpi-val" style="color:var(--accent)">${completado}</div><div class="kpi-label">Completados</div></div></div>
+    <div class="kpi" style="cursor:pointer" onclick="irAVista('todos','CANCELADO')"><div class="kpi-dot" style="background:#92400E"></div><div><div class="kpi-val" style="color:#92400E">${cancelado}</div><div class="kpi-label">Cancelados</div></div></div>
+    <div class="kpi" style="cursor:pointer" onclick="setVistaEstadia()"><div class="kpi-dot" style="background:var(--yellow)${estadiaAlerta?';animation:pulse 1.5s infinite':''}"></div><div><div class="kpi-val" style="color:${estadiaAlerta?'var(--red)':'var(--yellow)'}">${enEstadiaCount}</div><div class="kpi-label">En estadía</div></div></div>`;
 }
 
 
 
 
+function setVistaEstadia(){
+  document.querySelectorAll('.tab-btn').forEach(b=>{
+    if(b.textContent.trim()==='En estadía')setVista('estadia',b);
+  });
+}
+function irAVista(v,filtroEstatus){
+  const labels={'activos':'En tránsito','todos':'Todos'};
+  document.querySelectorAll('.tab-btn').forEach(b=>{
+    if(b.textContent.trim()===labels[v])setVista(v,b);
+  });
+  const sel=document.getElementById('filtroEstatus');
+  if(sel){sel.value=filtroEstatus;renderTabla();}
+}
 function setVista(v,el){
   vista=v;selectedId=null;
   document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
