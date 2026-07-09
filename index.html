@@ -50,7 +50,8 @@
   .dashboard{display:none;flex-direction:column;min-height:calc(100vh - 54px)}
   /* KPI */
   .kpi-bar{background:var(--surface);border-bottom:1px solid var(--border);padding:0 24px;display:flex;gap:0;overflow-x:auto}
-  .kpi{display:flex;align-items:center;gap:14px;padding:12px 20px 12px 0;margin-right:20px;border-right:1px solid var(--border);flex-shrink:0}
+  .kpi{display:flex;align-items:center;gap:14px;padding:12px 20px 12px 0;margin-right:20px;border-right:1px solid var(--border);flex-shrink:0;transition:opacity .15s}
+  .kpi[onclick]:hover{opacity:.7}
   .kpi:last-child{border-right:none}
   .kpi-val{font-size:24px;font-weight:800;line-height:1;letter-spacing:-.03em}
   .kpi-label{font-size:10px;color:var(--text-muted);text-transform:uppercase;letter-spacing:.06em;margin-top:2px}
@@ -917,18 +918,18 @@ function renderHistorial(){
   div.innerHTML=`
     <div class="hist-resumen" id="histKpis"></div>
     <div class="hist-filtros">
-      <input type="text" id="hBuscar" placeholder="Buscar..." oninput="filtrarHistorial()" style="width:180px">
+      <input type="text" id="hBuscar" placeholder="Buscar..." oninput="filtrarHistorial()" style="width:180px" value="${histFiltros.q}">
       <select id="hOperador" onchange="filtrarHistorial()">
         <option value="">Todos los operadores</option>
-        ${operadores.map(o=>`<option>${o}</option>`).join('')}
+        ${operadores.map(o=>`<option ${histFiltros.op===o?'selected':''}>${o}</option>`).join('')}
       </select>
       <select id="hDestino" onchange="filtrarHistorial()">
         <option value="">Todos los destinos</option>
-        ${destinos.map(d=>`<option>${d}</option>`).join('')}
+        ${destinos.map(d=>`<option ${histFiltros.dest===d?'selected':''}>${d}</option>`).join('')}
       </select>
       <select id="hFecha" onchange="filtrarHistorial()">
         <option value="">Todas las fechas</option>
-        ${fechas.map(f=>`<option value="${f}">${fmtFecha(f)}</option>`).join('')}
+        ${fechas.map(f=>`<option value="${f}" ${histFiltros.fecha===f?'selected':''}>${fmtFecha(f)}</option>`).join('')}
       </select>
     </div>
     <table style="width:100%;border-collapse:collapse;background:var(--surface);border-radius:10px;border:1px solid var(--border);overflow:hidden;box-shadow:var(--shadow)">
@@ -954,11 +955,19 @@ function renderHistorial(){
   filtrarHistorial();
 }
 
+// Estado de filtros del historial
+let histFiltros={q:'',op:'',dest:'',fecha:''};
+
 function filtrarHistorial(){
-  const q=(document.getElementById('hBuscar')||{value:''}).value.toLowerCase();
-  const op=(document.getElementById('hOperador')||{value:''}).value;
-  const dest=(document.getElementById('hDestino')||{value:''}).value;
-  const fecha=(document.getElementById('hFecha')||{value:''}).value;
+  // Leer filtros actuales si existen en el DOM
+  if(document.getElementById('hBuscar')) histFiltros.q=document.getElementById('hBuscar').value.toLowerCase();
+  if(document.getElementById('hOperador')) histFiltros.op=document.getElementById('hOperador').value;
+  if(document.getElementById('hDestino')) histFiltros.dest=document.getElementById('hDestino').value;
+  if(document.getElementById('hFecha')) histFiltros.fecha=document.getElementById('hFecha').value;
+  const q=histFiltros.q;
+  const op=histFiltros.op;
+  const dest=histFiltros.dest;
+  const fecha=histFiltros.fecha;
   let data=historico.filter(h=>{
     const txt=(h.unidad+h.operador+h.destino+h.origen).toLowerCase();
     // Comparar fecha formateada
